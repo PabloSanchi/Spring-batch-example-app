@@ -1,10 +1,14 @@
 package example.billingjob;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.batch.test.JobLauncherTestUtils;
+import org.springframework.batch.test.JobRepositoryTestUtils;
+import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,6 +22,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 
 @SpringBootTest
+@SpringBatchTest
 @Testcontainers
 @ActiveProfiles("dev")
 @ExtendWith(OutputCaptureExtension.class)
@@ -32,21 +37,25 @@ class BillingJobApplicationTests {
 			.withPassword("postgres");
 
 	@Autowired
-	private Job job;
+	private JobLauncherTestUtils jobLauncherTestUtils;
 
 	@Autowired
-	private JobLauncher jobLauncher;
+	private JobRepositoryTestUtils jobRepositoryTestUtils;
+
+	@AfterEach
+	public void setUp() {
+		jobRepositoryTestUtils.removeJobExecutions();
+	}
 
 	@Test
 	void testJobExecution(CapturedOutput output) throws Exception {
 		String filePath = "test/file/path";
 
-		JobParameters jobParameters = new JobParametersBuilder()
+		JobParameters jobParameters = this.jobLauncherTestUtils.getUniqueJobParametersBuilder()
 				.addString("input.file", filePath)
-				.addString("file.format", "csv")
 				.toJobParameters();
 
-		JobExecution jobExecution = this.jobLauncher.run(this.job, jobParameters);
+		JobExecution jobExecution = this.jobLauncherTestUtils.launchJob(jobParameters);
 
 		Assertions.assertTrue(output.getOut().contains("processing billing information from file " + filePath));
 		Assertions.assertEquals(ExitStatus.COMPLETED, jobExecution.getExitStatus());
