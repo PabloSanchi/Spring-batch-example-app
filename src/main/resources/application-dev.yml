@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: billing-job
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: postgres
+
+  batch:
+    jdbc:
+      initialize-schema: "always"
